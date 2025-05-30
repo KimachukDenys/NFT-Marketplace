@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { NftCard } from "../components/common/NftCard";
 import { mynftAddress, mynftAbi } from '../constants/MyNFT';
@@ -8,7 +8,6 @@ import { useAppContext } from '../AppContext';
 export const MyNftsPage = () => {
   const { account } = useAppContext();
   const [nfts, setNfts] = useState<NFT[]>([]);
-  const [listPrice, setListPrice] = useState('0.01');
   const [isLoading, setIsLoading] = useState(false);
 
   const getProviderAndSigner = async () => {
@@ -28,18 +27,19 @@ export const MyNftsPage = () => {
     return ipfsUrl;
   };
 
-  const loadNFTs = async () => {
+  const loadNFTs = useCallback(async () => {
     if (!account) return;
     setIsLoading(true);
 
     try {
-      const signer = await getProviderAndSigner();
+            const signer = await getProviderAndSigner();
       const nftContract = new ethers.Contract(mynftAddress, mynftAbi, signer);
       const marketContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
 
       const balance = await nftContract.balanceOf(account);
       const userNfts: NFT[] = [];
 
+      // Load owned NFTs
       for (let i = 1; i <= balance; i++) {
         try {
           const owner = await nftContract.ownerOf(i);
@@ -78,12 +78,17 @@ export const MyNftsPage = () => {
         }
       }
 
+      // Load listed NFTs
       const [listedIds, listings] = await marketContract.getAllListings();
       const listedItems: NFT[] = [];
 
       for (let i = 0; i < listedIds.length; i++) {
         const tokenId = Number(listedIds[i]);
         const listing = listings[i];
+        
+        // Skip if listing doesn't exist
+        if (!listing.exists) continue;
+
         const tokenURI = await nftContract.tokenURI(tokenId);
         let metadata: NFTMetadata | undefined;
         
@@ -116,25 +121,26 @@ export const MyNftsPage = () => {
         });
       }
 
-      const combinedNfts = [...userNfts, ...listedItems.filter(item => 
-        item.owner.toLowerCase() === account.toLowerCase()
-      )];
+      // Combine and filter NFTs
+      const combinedNfts = [
+        ...userNfts.filter(nft => !listedItems.some(listed => listed.tokenId === nft.tokenId)),
+        ...listedItems.filter(item => item.owner.toLowerCase() === account.toLowerCase())
+      ];
       
       setNfts(combinedNfts);
-    } catch (error) {
+    }
+    catch(error){
       console.error("Error loading NFTs:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [account]);
 
   const approveNFT = async (tokenId: number) => {
     try {
       const signer = await getProviderAndSigner();
       const nft = new ethers.Contract(mynftAddress, mynftAbi, signer);
-      const tx = await nft.approve(marketplaceAddress, tokenId, {
-        gasLimit: 300000
-      });
+      const tx = await nft.approve(marketplaceAddress, tokenId);
       await tx.wait();
       return true;
     } catch (error) {
@@ -143,12 +149,12 @@ export const MyNftsPage = () => {
     }
   };
 
-  const listNFT = async (tokenId: number) => {
+  const listNFT = async (tokenId: number, priceEth: string) => {
     try {
       const signer = await getProviderAndSigner();
       const market = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
       const nftContract = new ethers.Contract(mynftAddress, mynftAbi, signer);
-      const priceWei = ethers.parseEther(listPrice);
+      const priceWei = ethers.parseEther(priceEth);
       
       const approvedAddress = await nftContract.getApproved(tokenId);
       
@@ -157,9 +163,7 @@ export const MyNftsPage = () => {
         await approveTx.wait();
       }
 
-      const tx = await market.listItem(tokenId, priceWei, {
-        gasLimit: 300000
-      });
+      const tx = await market.listItem(tokenId, priceWei);
       
       const receipt = await tx.wait();
       if (receipt.status === 1) {
@@ -174,62 +178,59 @@ export const MyNftsPage = () => {
     }
   };
 
-  const handleList = async (tokenId: number) => {
+  const cancelListing = async (tokenId: number) => {
     try {
-      await approveNFT(tokenId);
-      await listNFT(tokenId);
+      const signer = await getProviderAndSigner();
+      const market = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+      
+      const tx = await market.cancelListing(tokenId);
+      
+      const receipt = await tx.wait();
+      if (receipt.status === 1) {
+        alert('Listing canceled successfully!');
+        loadNFTs();
+      } else {
+        throw new Error('Transaction failed');
+      }
     } catch (error) {
-      alert(`Listing failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Cancel listing error:", error);
+      throw error;
     }
   };
 
   useEffect(() => {
     loadNFTs();
-  }, [account]);
+  }, [account, loadNFTs]);
 
   if (!account) {
-    return <div className="container">Please connect your wallet to view your NFTs</div>;
+    return <div className="container">Будь ласка, підключіть гаманець</div>;
   }
 
   if (isLoading) {
-    return <div className="container">Loading your NFTs...</div>;
+    return <div className="container">Завантаження NFT...</div>;
   }
 
   return (
     <div className="container">
-      <h2>My NFTs</h2>
-      <div className="price-input">
-        <label htmlFor="listPrice">Listing Price (ETH):</label>
-        <input
-          id="listPrice"
-          type="text"
-          value={listPrice}
-          onChange={(e) => setListPrice(e.target.value)}
-          placeholder="0.01"
-        />
-      </div>
+      <h2>Мої NFT</h2>
       
       {nfts.length === 0 ? (
-        <p>You don't own any NFTs yet</p>
+        <p>У вас немає NFT</p>
       ) : (
         <div className="nft-grid">
           {nfts.map(nft => (
-            <div key={nft.tokenId} className="nft-card-wrapper">
-              <NftCard 
-                nft={nft}
-                onApprove={approveNFT}
-                onList={handleList}
-                convertIpfsUrl={convertIpfsUrl}
-              />
-              {!nft.isListed && (
-                <button 
-                  onClick={() => handleList(nft.tokenId)}
-                  className="list-button"
-                >
-                  List for Sale
-                </button>
-              )}
-            </div>
+            <NftCard
+              key={nft.tokenId}
+              nft={nft}
+              account={account}
+              convertIpfsUrl={convertIpfsUrl}
+              onApprove={async () => approveNFT(nft.tokenId)}
+              onList={async (priceEth) => listNFT(nft.tokenId, priceEth)}
+              onCancel={nft.isListed 
+                ? async () => cancelListing(nft.tokenId)
+                : undefined
+              }
+            />
           ))}
         </div>
       )}

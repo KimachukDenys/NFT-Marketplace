@@ -15,4 +15,11 @@ declare global {
     isListed: boolean;
     metadata?: NFTMetadata;
   }
+
+  interface Filters {
+    searchQuery: string;
+    minPrice: string;
+    maxPrice: string;
+    sortBy: 'price-asc' | 'price-desc' | 'newest';
+  }
 }

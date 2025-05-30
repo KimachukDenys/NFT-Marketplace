@@ -1,15 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ethers } from 'ethers';
 import { NftCard } from "../components/common/NftCard";
 import { mynftAddress, mynftAbi } from '../constants/MyNFT';
 import { marketplaceAddress, marketplaceAbi } from '../constants/Marketplace';
 import { useAppContext } from '../AppContext';
+import { NftFilters } from '../components/common/NftFilters';
 
 export const MarketplacePage = () => {
   const { account } = useAppContext();
   const [listedNfts, setListedNfts] = useState<NFT[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>({
+    searchQuery: '',
+    minPrice: '',
+    maxPrice: '',
+    sortBy: 'newest'
+  });
 
   const getProviderAndSigner = async () => {
     const provider = new ethers.BrowserProvider(
@@ -28,7 +35,7 @@ export const MarketplacePage = () => {
     return ipfsUrl;
   };
 
-  const loadListedNFTs = async () => {
+  const loadListedNFTs = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -87,7 +94,37 @@ export const MarketplacePage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  const filteredNfts = useMemo(() => {
+    return listedNfts.filter(nft => {
+      // Filter by search query
+      const matchesSearch = filters.searchQuery === '' || 
+        (nft.metadata?.name?.toLowerCase().includes(filters.searchQuery.toLowerCase()));
+      
+      // Filter by price range
+      const price = parseFloat(nft.price || '0');
+      const minPrice = filters.minPrice ? parseFloat(filters.minPrice) : 0;
+      const maxPrice = filters.maxPrice ? parseFloat(filters.maxPrice) : Infinity;
+      const matchesPrice = price >= minPrice && price <= maxPrice;
+      
+      return matchesSearch && matchesPrice;
+    }).sort((a, b) => {
+      // Sort by selected option
+      const priceA = parseFloat(a.price || '0');
+      const priceB = parseFloat(b.price || '0');
+
+      switch (filters.sortBy) {
+        case 'price-asc':
+          return priceA - priceB;
+        case 'price-desc':
+          return priceB - priceA;
+        case 'newest':
+        default:
+          return b.tokenId - a.tokenId; // Assuming higher tokenId means newer
+      }
+    });
+  }, [listedNfts, filters]);
 
   const buyNFT = async (tokenId: number, price: string) => {
     if (!account) {
@@ -115,12 +152,22 @@ export const MarketplacePage = () => {
     }
   };
 
+  const minAvailablePrice = useMemo(() => {
+    if (listedNfts.length === 0) return 0;
+    return Math.floor(Math.min(...listedNfts.map(nft => parseFloat(nft.price || '0'))) * 100) / 100;
+  }, [listedNfts]);
+
+  const maxAvailablePrice = useMemo(() => {
+    if (listedNfts.length === 0) return 10; // Дефолтне значення, якщо немає NFT
+    return Math.ceil(Math.max(...listedNfts.map(nft => parseFloat(nft.price || '0'))) * 100) / 100;
+  }, [listedNfts]);
+
   useEffect(() => {
     loadListedNFTs();
     
     const interval = setInterval(loadListedNFTs, 30000);
     return () => clearInterval(interval);
-  }, [account]);
+  }, [account, loadListedNFTs]);
 
   if (isLoading && listedNfts.length === 0) {
     return <div className="container">Loading marketplace...</div>;
@@ -135,28 +182,24 @@ export const MarketplacePage = () => {
       <h2>NFT Marketplace</h2>
       <p>Browse and purchase NFTs listed by other users</p>
       
-      {listedNfts.length === 0 ? (
-        <p>No NFTs currently listed for sale</p>
+      <NftFilters 
+        onFilterChange={setFilters} 
+        minAvailablePrice={minAvailablePrice} 
+        maxAvailablePrice={maxAvailablePrice} 
+      />
+      
+      {filteredNfts.length === 0 ? (
+        <p>No NFTs match your search criteria</p>
       ) : (
         <div className="nft-grid">
-          {listedNfts.map(nft => (
-            <div key={nft.tokenId} className="nft-card-wrapper">
-              <NftCard 
-                nft={nft}
-                onBuy={buyNFT}
-                account={account}
-                convertIpfsUrl={convertIpfsUrl}
-              />
-              {account && account.toLowerCase() !== nft.seller?.toLowerCase() && (
-                <button 
-                  onClick={() => buyNFT(nft.tokenId, nft.price || '0')}
-                  className="buy-button"
-                  disabled={isLoading}
-                >
-                  Buy for {nft.price} ETH
-                </button>
-              )}
-            </div>
+          {filteredNfts.map(nft => (
+            <NftCard 
+              key={nft.tokenId}
+              nft={nft}
+              onBuy={buyNFT}
+              account={account}
+              convertIpfsUrl={convertIpfsUrl}
+            />
           ))}
         </div>
       )}
