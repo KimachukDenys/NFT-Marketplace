@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/common/Navbar';
-import { AppProvider } from './AppContext';
+import { AppProvider } from './AppProvider';
 import { MarketplacePage} from './pages/MarketplacePage';
 import MintPage from './pages/MintPage';
 import { MyNftsPage } from './pages/MyNftsPage';
+import  AuctionPage  from './pages/AuctionPage'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
               <Route path="/" element={<MarketplacePage />} />
               <Route path="/mint" element={<MintPage />} />
               <Route path="/my-nfts" element={<MyNftsPage />} />
+              <Route path="/auction" element={<AuctionPage />} />
             </Routes>
           </div>
         </div>

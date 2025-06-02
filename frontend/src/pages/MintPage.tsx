@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppContext } from "../AppContext";
+import { useAppContext } from '../hooks/useAppContext';
 import { MintForm } from "../components/mint/MintForm";
 import { useNavigate } from "react-router-dom";
 
@@ -37,6 +37,7 @@ const MintPage = () => {
         name,
         description: desc,
         image: `ipfs://${imgCid}`,
+        createdAt: new Date().toISOString(),
       };
       const metaBlob = new Blob([JSON.stringify(meta)], {
         type: "application/json",
@@ -58,6 +59,8 @@ const MintPage = () => {
         gasLimit: 500_000,
       });
       await tx.wait();
+      
+      console.log(tokenURI);
 
       // Перенаправлення на сторінку з NFT користувача після успішного мінту
       navigate("/my-nfts");

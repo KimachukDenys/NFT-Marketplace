@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ConnectWalletButton from "../ConnectWalletButton";
-import { useAppContext } from '../../AppContext';
+import { useAppContext } from '../../hooks/useAppContext';
 
 const Navbar: React.FC = () => {
   const { setAccount } = useAppContext();
@@ -13,6 +13,7 @@ const Navbar: React.FC = () => {
         <Link to="/" className="hover:underline">Marketplace</Link>
         <Link to="/mint" className="hover:underline">Mint NFT</Link>
         <Link to="/my-nfts" className="hover:underline">My NFTs</Link>
+        <Link to="/auction" className="hover:underline">Auction</Link>
         <ConnectWalletButton setAccount={setAccount} />
       </div>
     </nav>

@@ -5,19 +5,21 @@ interface Props {
   onApprove?: () => Promise<boolean>;
   onList?: (priceEth: string) => Promise<void>;
   onCancel?: () => Promise<void>;
+  onStartAuction?: () => void;
   onBuy?: (tokenId: number, price: string) => Promise<void>;
   account?: string | null;
   convertIpfsUrl: (u: string) => string;
 }
 
 export const NftCard: React.FC<Props> = ({
-  nft, 
-  onApprove, 
-  onList, 
-  onCancel, 
+  nft,
+  onApprove,
+  onList,
+  onCancel,
   onBuy,
+  onStartAuction,
   account,
-  convertIpfsUrl
+  convertIpfsUrl,
 }) => {
   const [price, setPrice] = useState("0.01");
   const [isApproving, setIsApproving] = useState(false);
@@ -84,26 +86,26 @@ export const NftCard: React.FC<Props> = ({
             type="text"
             value={price}
             className="price-input"
-            onChange={e => setPrice(e.target.value)}
+            onChange={(e) => setPrice(e.target.value)}
             placeholder="Цiна, ETH"
           />
 
           <div className="action-buttons">
             {onApprove && (
-              <button 
-                onClick={handleApprove}
-                disabled={isApproving}
-              >
+              <button onClick={handleApprove} disabled={isApproving}>
                 {isApproving ? "Підтвердження..." : "Підтвердити"}
               </button>
             )}
 
             {onList && (
-              <button
-                onClick={handleList}
-                disabled={isListing || Number(price) <= 0}
-              >
+              <button onClick={handleList} disabled={isListing || Number(price) <= 0}>
                 {isListing ? "Виставлення..." : "Виставити"}
+              </button>
+            )}
+
+            {onStartAuction && (
+              <button onClick={onStartAuction} className="mx-1">
+                Аукціон
               </button>
             )}
           </div>
@@ -114,26 +116,17 @@ export const NftCard: React.FC<Props> = ({
             Цiна: <strong>{nft.price}</strong> ETH
           </p>
           <p className="text-xs text-gray-500">
-            Продавець:{" "}
-            {nft.seller?.slice(0, 6)}…{nft.seller?.slice(-4)}
+            Продавець: {nft.seller?.slice(0, 6)}…{nft.seller?.slice(-4)}
           </p>
 
           {onCancel && (
-            <button 
-              onClick={handleCancel}
-              disabled={isCanceling}
-              className="cancel-btn"
-            >
+            <button onClick={handleCancel} disabled={isCanceling} className="cancel-btn">
               {isCanceling ? "Скасування..." : "Скасувати лістинг"}
             </button>
           )}
 
           {onBuy && account && account.toLowerCase() !== nft.seller?.toLowerCase() && (
-            <button 
-              onClick={handleBuy}
-              disabled={isBuying}
-              className="buy-btn"
-            >
+            <button onClick={handleBuy} disabled={isBuying} className="buy-btn">
               {isBuying ? "Купівля..." : "Купити"}
             </button>
           )}

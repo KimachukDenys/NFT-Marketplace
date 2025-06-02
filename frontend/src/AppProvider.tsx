@@ -1,25 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react'; // Додано type-only import
+import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { BrowserProvider, Contract } from 'ethers';
 import { mynftAddress, mynftAbi } from './constants/MyNFT';
 import { marketplaceAddress, marketplaceAbi } from './constants/Marketplace';
+import { AppContext } from './context/AppContext';
 
-interface AppContextType {
-  account: string | null;
-  setAccount: (account: string | null) => void;
-  provider: BrowserProvider | null;
-  nftContract: Contract | null;
-  marketContract: Contract | null;
-  ipfsStatus: 'connecting' | 'connected' | 'error';
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-interface AppProviderProps {
-  children: ReactNode;
-}
-
-export const AppProvider = ({ children }: AppProviderProps) => {
+export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [nftContract, setNftContract] = useState<Contract | null>(null);
@@ -60,7 +46,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     return () => clearInterval(interval);
   }, []);
 
-  const value = {
+  const value: AppContextType = {
     account,
     setAccount,
     provider,
@@ -75,11 +61,3 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     </AppContext.Provider>
   );
 };
-
-export function useAppContext() {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
-  return context;
-}

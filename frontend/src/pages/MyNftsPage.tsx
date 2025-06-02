@@ -3,12 +3,17 @@ import { ethers } from 'ethers';
 import { NftCard } from "../components/common/NftCard";
 import { mynftAddress, mynftAbi } from '../constants/MyNFT';
 import { marketplaceAddress, marketplaceAbi } from '../constants/Marketplace';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../hooks/useAppContext';
+import { auctionAddress, auctionAbi } from '../constants/Auction';
+import  AuctionModal from '../modals/AuctionModal';
 
 export const MyNftsPage = () => {
   const { account } = useAppContext();
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTokenId, setModalTokenId] = useState<number | null>(null);
 
   const getProviderAndSigner = async () => {
     const provider = new ethers.BrowserProvider(
@@ -40,11 +45,12 @@ export const MyNftsPage = () => {
       const userNfts: NFT[] = [];
 
       // Load owned NFTs
-      for (let i = 1; i <= balance; i++) {
+      for (let i = 0; i < balance; i++) {
+        const tokenId = await nftContract.tokenOfOwnerByIndex(account, i);
         try {
-          const owner = await nftContract.ownerOf(i);
+          const owner = await nftContract.ownerOf(tokenId);
           if (owner.toLowerCase() === account.toLowerCase()) {
-            const tokenURI = await nftContract.tokenURI(i);
+            const tokenURI = await nftContract.tokenURI(tokenId);
             let metadata: NFTMetadata | undefined;
             
             if (tokenURI.startsWith('ipfs://')) {
@@ -67,14 +73,14 @@ export const MyNftsPage = () => {
             }
 
             userNfts.push({
-              tokenId: i,
+              tokenId: Number(tokenId),
               owner: account,
               isListed: false,
               metadata
             });
           }
         } catch (e) {
-          console.log(`Token ${i} not found or error:`, e);
+          console.log(`Token ${tokenId} not found or error:`, e);
         }
       }
 
@@ -198,9 +204,44 @@ export const MyNftsPage = () => {
     }
   };
 
+    const createAuction = async (
+    tokenId: number,
+    durationSec: number,
+    buyNowEth: string,
+    minIncEth: string,
+  ) => {
+    const signer = await getProviderAndSigner();
+    const nft = new ethers.Contract(mynftAddress, mynftAbi, signer);
+    const auction = new ethers.Contract(auctionAddress, auctionAbi, signer);
+
+    // 1) approve NFT to auction contract, якщо ще не approved
+    const approved = await nft.getApproved(tokenId);
+    if (approved.toLowerCase() !== auctionAddress.toLowerCase()) {
+      const txAppr = await nft.approve(auctionAddress, tokenId);
+      await txAppr.wait();
+    }
+
+    // 2) createAuction
+    const tx = await auction.createAuction(
+      tokenId,
+      durationSec,
+      ethers.parseEther(buyNowEth),
+      ethers.parseEther(minIncEth),
+    );
+    await tx.wait();
+    alert('Аукціон створено!');
+  };
+
+  /* --- відкриття модалки --- */
+  const openAuctionModal = (tokenId: number) => {
+    setModalTokenId(tokenId);
+    setModalOpen(true);
+  };
+
   useEffect(() => {
     loadNFTs();
   }, [account, loadNFTs]);
+
 
   if (!account) {
     return <div className="container">Будь ласка, підключіть гаманець</div>;
@@ -210,10 +251,10 @@ export const MyNftsPage = () => {
     return <div className="container">Завантаження NFT...</div>;
   }
 
-  return (
+   return (
     <div className="container">
-      <h2>Мої NFT</h2>
-      
+      <h2 className="text-2xl font-semibold mb-4">Мої NFT</h2>
+
       {nfts.length === 0 ? (
         <p>У вас немає NFT</p>
       ) : (
@@ -225,15 +266,21 @@ export const MyNftsPage = () => {
               account={account}
               convertIpfsUrl={convertIpfsUrl}
               onApprove={async () => approveNFT(nft.tokenId)}
-              onList={async (priceEth) => listNFT(nft.tokenId, priceEth)}
-              onCancel={nft.isListed 
-                ? async () => cancelListing(nft.tokenId)
-                : undefined
-              }
+              onList={async p => listNFT(nft.tokenId, p)}
+              onCancel={nft.isListed ? async () => cancelListing(nft.tokenId) : undefined}
+              onStartAuction={() => openAuctionModal(nft.tokenId)}
             />
           ))}
         </div>
       )}
+
+      {/* модальне вікно */}
+      <AuctionModal
+        isOpen={modalOpen}
+        tokenId={modalTokenId}
+        onClose={() => setModalOpen(false)}
+        onSubmit={createAuction}
+      />
     </div>
   );
 };

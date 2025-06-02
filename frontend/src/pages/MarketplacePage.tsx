@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { NftCard } from "../components/common/NftCard";
 import { mynftAddress, mynftAbi } from '../constants/MyNFT';
 import { marketplaceAddress, marketplaceAbi } from '../constants/Marketplace';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../hooks/useAppContext';
 import { NftFilters } from '../components/common/NftFilters';
 
 export const MarketplacePage = () => {
@@ -128,7 +128,7 @@ export const MarketplacePage = () => {
 
   const buyNFT = async (tokenId: number, price: string) => {
     if (!account) {
-      alert("Please connect your wallet to buy NFTs");
+      alert("Будьласка під'єднайте");
       return;
     }
 
@@ -142,11 +142,11 @@ export const MarketplacePage = () => {
       });
       
       await tx.wait();
-      alert('NFT purchased successfully!');
+      alert('NFT куплено успішно!');
       await loadListedNFTs();
     } catch (error) {
-      console.error("Purchase error:", error);
-      alert(`Purchase failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Помилка оплати:", error);
+      alert(`Оплата провалена: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsLoading(false);
     }

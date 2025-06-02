@@ -18,6 +18,13 @@ async function main() {
   await marketplace.waitForDeployment();
 
   console.log("Marketplace deployed to:", await marketplace.getAddress());
+
+  // Деплой Auction
+  const Auction = await ethers.getContractFactory("NFTAuction");
+  const auction = await Auction.deploy(await myNFT.getAddress());
+  await auction.waitForDeployment();
+
+  console.log("Auction deployed to:", await auction.getAddress());
 }
 
 main()
