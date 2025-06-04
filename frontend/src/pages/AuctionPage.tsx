@@ -1,37 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Contract, EventLog } from 'ethers';
 import { auctionAbi, auctionAddress } from '../constants/Auction';
-import { mynftAbi } from '../constants/MyNFT';
+import { mynftAddress, mynftAbi } from '../constants/MyNFT';
 import AuctionCard from '../components/common/AuctionCard';
 import { useAppContext } from '../hooks/useAppContext';
 
-interface NFTMetadata {
-  name: string;
-  description: string;
-  image: string;
-}
-
-interface AuctionMeta {
-  tokenId: number;
-  seller: string;
-  highestBid: bigint;
-  highestBidder: string;
-  buyNowPrice: bigint;
-  minBidIncrement: bigint;
-  endTime: number;
-  metadata?: NFTMetadata;
-  onCancelAuction?: () => Promise<void>;
-}
-
 const ipfsToHttp = (ipfsUrl: string) => {
-    if (!ipfsUrl) return '';
-    if (ipfsUrl.startsWith('http')) return ipfsUrl;
-    if (ipfsUrl.startsWith('ipfs://')) {
-      const hash = ipfsUrl.replace('ipfs://', '');
-      return `http://localhost:8080/ipfs/${hash}`;
-    }
-    return ipfsUrl;
-  };
+  if (!ipfsUrl) return '';
+  if (ipfsUrl.startsWith('http')) return ipfsUrl;
+  if (ipfsUrl.startsWith('ipfs://')) {
+    const hash = ipfsUrl.replace('ipfs://', '');
+    return `http://localhost:8080/ipfs/${hash}`;
+  }
+  return ipfsUrl;
+};
 
 const AuctionsPage = () => {
   const { provider, account } = useAppContext();
@@ -40,16 +22,14 @@ const AuctionsPage = () => {
   const [auctions, setAuctions] = useState<AuctionMeta[]>([]);
   const [txPending, setTxPending] = useState(false);
 
-  // 1. Ініціалізація контрактів
+  // Ініціалізація контрактів
   useEffect(() => {
     if (!provider) return;
 
     const initContracts = async () => {
       const signer = await provider.getSigner();
       const auctionWithSigner = new Contract(auctionAddress, auctionAbi, signer);
-      const auctionRead = new Contract(auctionAddress, auctionAbi, provider);
-      const nftAddress = await auctionRead.nftContract();
-      const nft = new Contract(nftAddress, mynftAbi, provider);
+      const nft = new Contract(mynftAddress, mynftAbi, provider);
 
       setAuctionContract(auctionWithSigner);
       setNftContract(nft);
@@ -58,9 +38,9 @@ const AuctionsPage = () => {
     initContracts();
   }, [provider]);
 
-  // 2. Завантаження активних аукціонів
+  // Завантаження активних аукціонів
   const loadAuctions = useCallback(async () => {
-    if (!auctionContract || !nftContract) return;
+    if (!auctionContract || !nftContract || !provider) return;
     setTxPending(true);
 
     try {
@@ -82,19 +62,20 @@ const AuctionsPage = () => {
       const results: AuctionMeta[] = [];
 
       for (const tokenId of tokenIds) {
-        const auction = await auctionContract.auctions(tokenId);
+        const auction = await auctionContract.auctions(mynftAddress, tokenId);
         if (auction.ended) continue;
 
-        let metadata;
+        let metadata: NFTMetadata | undefined;
         try {
-          const tokenURI = await nftContract.tokenURI(tokenId);
-          const res = await fetch(ipfsToHttp(tokenURI));
+          const uri = await nftContract.tokenURI(tokenId);
+          const res = await fetch(ipfsToHttp(uri));
           metadata = await res.json();
         } catch (err) {
-          console.warn(`Metadata fetch failed for token ${tokenId}, ${err}`);
+          console.warn(`Metadata fetch failed for token ${tokenId}:`, err);
         }
 
         results.push({
+          nftAddress: mynftAddress,
           tokenId,
           seller: auction.seller,
           highestBid: auction.highestBid,
@@ -112,9 +93,9 @@ const AuctionsPage = () => {
     } finally {
       setTxPending(false);
     }
-  }, [auctionContract, nftContract]);
+  }, [auctionContract, nftContract, provider]);
 
-  // 3. Завантажити аукціони при зміні блоків
+  // Завантажити аукціони при зміні блоків
   useEffect(() => {
     if (!provider || !auctionContract) return;
 
@@ -126,7 +107,6 @@ const AuctionsPage = () => {
     };
   }, [provider, auctionContract, loadAuctions]);
 
-  // 4. Вивід
   if (!provider) {
     return <p className="p-4">Підключіть гаманець</p>;
   }
@@ -149,7 +129,17 @@ const AuctionsPage = () => {
             auctionContract={auctionContract!}
             disabled={txPending}
             refetch={loadAuctions}
-            currentAddress={account ?? ''} 
+            currentAddress={account ?? ''}
+            onCancelAuction={async () => {
+              if (!auctionContract) return;
+              try {
+                const tx = await auctionContract.cancelAuction(a.nftAddress ,a.tokenId);
+                await tx.wait();
+                console.log(`Аукціон #${a.tokenId} скасовано`);
+              } catch (err) {
+                console.error(`Помилка скасування аукціону #${a.tokenId}:`, err);
+              }
+            }}
           />
         ))}
       </div>

@@ -5,136 +5,131 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract NFTAuction is ReentrancyGuard, IERC721Receiver {
+contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
     struct Auction {
         address seller;
         address highestBidder;
-        uint256 highestBid;
-        uint256 startTime;
-        uint256 endTime;
-        uint256 buyNowPrice;
-        uint256 minBidIncrement;
-        bool ended;
+        uint256 highestBid;       // wei
+        uint256 endTime;          // timestamp
+        uint256 buyNowPrice;      // wei
+        uint256 minBidIncrement;  // wei
+        bool    ended;
     }
 
-    mapping(uint256 => Auction) public auctions;
-    IERC721 public immutable nftContract;
+    // collection => tokenId => Auction
+    mapping(address => mapping(uint256 => Auction)) public auctions;
 
-    event AuctionCreated(uint256 indexed tokenId, address seller, uint256 start, uint256 end, uint256 buyNow);
-    event BidPlaced(uint256 indexed tokenId, address bidder, uint256 amount);
-    event AuctionEnded(uint256 indexed tokenId, address winner, uint256 price);
-    event AuctionCanceled(uint256 indexed tokenId);
+    event AuctionCreated(address indexed nft, uint256 indexed tokenId, address seller, uint256 endTime, uint256 buyNow);
+    event BidPlaced     (address indexed nft, uint256 indexed tokenId, address bidder, uint256 amount);
+    event AuctionEnded  (address indexed nft, uint256 indexed tokenId, address winner, uint256 price);
+    event AuctionCanceled(address indexed nft, uint256 indexed tokenId);
 
-    constructor(address _nft) {
-        nftContract = IERC721(_nft);
-    }
-
+    /* ------------------------------------------------------------ */
+    /*                       1. Створення                           */
+    /* ------------------------------------------------------------ */
     function createAuction(
-        uint256 tokenId,
-        uint256 duration,
-        uint256 buy,
-        uint256 minInc
+        address _nft,
+        uint256 _tokenId,
+        uint256 _durationSec,
+        uint256 _buyNowWei,
+        uint256 _minIncWei
     ) external {
-        require(nftContract.ownerOf(tokenId) == msg.sender, "Not owner");
-        require(auctions[tokenId].seller == address(0), "Auction exists");
+        IERC721 nft = IERC721(_nft);
 
-        nftContract.safeTransferFrom(msg.sender, address(this), tokenId);
+        require(nft.ownerOf(_tokenId) == msg.sender, "Not owner");
+        require(auctions[_nft][_tokenId].seller == address(0), "Auction exists");
 
-        auctions[tokenId] = Auction({
+        nft.safeTransferFrom(msg.sender, address(this), _tokenId);
+
+        auctions[_nft][_tokenId] = Auction({
             seller: msg.sender,
             highestBidder: address(0),
             highestBid: 0,
-            startTime: block.timestamp,
-            endTime: block.timestamp + duration,
-            buyNowPrice: buy,
-            minBidIncrement: minInc,
+            endTime: block.timestamp + _durationSec,
+            buyNowPrice: _buyNowWei,
+            minBidIncrement: _minIncWei,
             ended: false
         });
 
-        emit AuctionCreated(tokenId, msg.sender, block.timestamp, block.timestamp + duration, buy);
+        emit AuctionCreated(_nft, _tokenId, msg.sender, block.timestamp + _durationSec, _buyNowWei);
     }
 
-    function placeBid(uint256 tokenId) external payable nonReentrant {
-        Auction storage a = auctions[tokenId];
-        require(!a.ended, "Auction ended");
-        require(block.timestamp < a.endTime, "Auction time expired");
+    /* ------------------------------------------------------------ */
+    function placeBid(address _nft, uint256 _tokenId) external payable nonReentrant {
+        Auction storage a = auctions[_nft][_tokenId];
+        require(!a.ended, "Ended");
+        require(block.timestamp < a.endTime, "Expired");
         require(msg.value >= a.highestBid + a.minBidIncrement, "Bid too low");
 
-        // Автоматичне завершення якщо хтось перебиває buyNowPrice
-        if (msg.value >= a.buyNowPrice) {
-            _endAuction(tokenId, msg.sender, msg.value);
+        if (msg.value >= a.buyNowPrice && a.buyNowPrice != 0) {
+            _endAuction(_nft, _tokenId, msg.sender, msg.value);
             return;
         }
 
         if (a.highestBidder != address(0)) {
             payable(a.highestBidder).transfer(a.highestBid);
         }
-
         a.highestBidder = msg.sender;
         a.highestBid = msg.value;
 
-        emit BidPlaced(tokenId, msg.sender, msg.value);
+        emit BidPlaced(_nft, _tokenId, msg.sender, msg.value);
     }
 
-    function buyNow(uint256 tokenId) external payable nonReentrant {
-        Auction storage a = auctions[tokenId];
-        require(!a.ended, "Auction ended");
-        require(block.timestamp < a.endTime, "Auction time expired");
-        require(msg.value >= a.buyNowPrice, "Insufficient funds");
+    /* ------------------------------------------------------------ */
+    function buyNow(address _nft, uint256 _tokenId) external payable nonReentrant {
+        Auction storage a = auctions[_nft][_tokenId];
+        require(!a.ended, "Ended");
+        require(block.timestamp < a.endTime, "Expired");
+        require(msg.value >= a.buyNowPrice && a.buyNowPrice != 0, "Too low");
 
-        _endAuction(tokenId, msg.sender, msg.value);
+        _endAuction(_nft, _tokenId, msg.sender, msg.value);
     }
 
-    function endAuction(uint256 tokenId) external nonReentrant {
-        Auction storage a = auctions[tokenId];
-        require(!a.ended, "Already ended");
-        require(block.timestamp >= a.endTime || msg.sender == a.seller, "Not ended or not seller");
+    /* ------------------------------------------------------------ */
+    function endAuction(address _nft, uint256 _tokenId) external nonReentrant {
+        Auction storage a = auctions[_nft][_tokenId];
+        require(!a.ended, "Ended");
+        require(block.timestamp >= a.endTime || msg.sender == a.seller, "Too early");
 
-        _endAuction(tokenId, a.highestBidder, a.highestBid);
+        _endAuction(_nft, _tokenId, a.highestBidder, a.highestBid);
     }
 
-    function _endAuction(uint256 tokenId, address winner, uint256 price) private {
-        Auction storage a = auctions[tokenId];
+    /* ------------------------------------------------------------ */
+    function cancelAuction(address _nft, uint256 _tokenId) external nonReentrant {
+        Auction storage a = auctions[_nft][_tokenId];
+        require(a.seller == msg.sender, "Not seller");
+        require(!a.ended, "Ended");
+        require(a.highestBid == 0, "Has bid");
+
+        IERC721(_nft).safeTransferFrom(address(this), a.seller, _tokenId);
+        delete auctions[_nft][_tokenId];
+
+        emit AuctionCanceled(_nft, _tokenId);
+    }
+
+    /* ------------------------------------------------------------ */
+    function _endAuction(
+        address _nft,
+        uint256 _tokenId,
+        address _winner,
+        uint256 _price
+    ) private {
+        Auction storage a = auctions[_nft][_tokenId];
         a.ended = true;
 
-        if (winner != address(0)) {
-            payable(a.seller).transfer(price);
-            nftContract.safeTransferFrom(address(this), winner, tokenId);
+        if (_winner != address(0)) {
+            payable(a.seller).transfer(_price);
+            IERC721(_nft).safeTransferFrom(address(this), _winner, _tokenId);
         } else {
-            nftContract.safeTransferFrom(address(this), a.seller, tokenId);
+            IERC721(_nft).safeTransferFrom(address(this), a.seller, _tokenId);
         }
 
-        emit AuctionEnded(tokenId, winner, price);
-        delete auctions[tokenId];
+        emit AuctionEnded(_nft, _tokenId, _winner, _price);
+        delete auctions[_nft][_tokenId];
     }
 
-    function cancelAuction(uint256 tokenId) external nonReentrant {
-        Auction storage a = auctions[tokenId];
-        require(a.seller == msg.sender, "Not seller");
-        require(a.highestBid == 0, "Has bids");
-        require(!a.ended, "Already ended");
-
-        nftContract.safeTransferFrom(address(this), a.seller, tokenId);
-        delete auctions[tokenId];
-
-        emit AuctionCanceled(tokenId);
-    }
-
-    // Дозволяє будь-кому викликати завершення аукціону після його закінчення
-    function checkAndEndExpiredAuction(uint256 tokenId) external nonReentrant {
-        Auction storage a = auctions[tokenId];
-        require(!a.ended, "Already ended");
-        require(block.timestamp >= a.endTime, "Auction not expired");
-
-        _endAuction(tokenId, a.highestBidder, a.highestBid);
-    }
-
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+    /* ------------------------------------------------------------ */
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 }

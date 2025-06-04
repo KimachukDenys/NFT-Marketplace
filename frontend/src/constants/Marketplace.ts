@@ -1,14 +1,8 @@
-export const marketplaceAddress = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9';
+export const marketplaceAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
 
 export const marketplaceAbi = [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_nftContract",
-          "type": "address"
-        }
-      ],
+      "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
     },
@@ -44,6 +38,12 @@ export const marketplaceAbi = [
       "inputs": [
         {
           "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
+        {
+          "indexed": true,
           "internalType": "uint256",
           "name": "tokenId",
           "type": "uint256"
@@ -69,6 +69,12 @@ export const marketplaceAbi = [
       "inputs": [
         {
           "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
+        {
+          "indexed": true,
           "internalType": "uint256",
           "name": "tokenId",
           "type": "uint256"
@@ -86,6 +92,12 @@ export const marketplaceAbi = [
     {
       "anonymous": false,
       "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
         {
           "indexed": true,
           "internalType": "uint256",
@@ -130,6 +142,11 @@ export const marketplaceAbi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
           "name": "_tokenId",
           "type": "uint256"
@@ -142,6 +159,11 @@ export const marketplaceAbi = [
     },
     {
       "inputs": [
+        {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
         {
           "internalType": "uint256",
           "name": "_tokenId",
@@ -158,9 +180,21 @@ export const marketplaceAbi = [
       "name": "getAllListings",
       "outputs": [
         {
-          "internalType": "uint256[]",
+          "components": [
+            {
+              "internalType": "address",
+              "name": "nft",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct MarketplaceMulti.Key[]",
           "name": "",
-          "type": "uint256[]"
+          "type": "tuple[]"
         },
         {
           "components": [
@@ -173,14 +207,9 @@ export const marketplaceAbi = [
               "internalType": "uint256",
               "name": "price",
               "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "exists",
-              "type": "bool"
             }
           ],
-          "internalType": "struct Marketplace.Listing[]",
+          "internalType": "struct MarketplaceMulti.Listing[]",
           "name": "",
           "type": "tuple[]"
         }
@@ -190,6 +219,11 @@ export const marketplaceAbi = [
     },
     {
       "inputs": [
+        {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
         {
           "internalType": "uint256",
           "name": "_tokenId",
@@ -214,11 +248,16 @@ export const marketplaceAbi = [
           "type": "uint256"
         }
       ],
-      "name": "listedTokenIds",
+      "name": "listedKeys",
       "outputs": [
         {
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "",
+          "name": "tokenId",
           "type": "uint256"
         }
       ],
@@ -227,6 +266,11 @@ export const marketplaceAbi = [
     },
     {
       "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
         {
           "internalType": "uint256",
           "name": "",
@@ -244,24 +288,6 @@ export const marketplaceAbi = [
           "internalType": "uint256",
           "name": "price",
           "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "exists",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "nftContract",
-      "outputs": [
-        {
-          "internalType": "contract IERC721",
-          "name": "",
-          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -283,19 +309,6 @@ export const marketplaceAbi = [
     {
       "inputs": [],
       "name": "renounceOwnership",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_nftContract",
-          "type": "address"
-        }
-      ],
-      "name": "setNftContract",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

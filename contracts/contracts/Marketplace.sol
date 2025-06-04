@@ -5,87 +5,87 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Marketplace is ReentrancyGuard, Ownable {
+contract MarketplaceMulti is ReentrancyGuard, Ownable {
     struct Listing {
         address seller;
-        uint256 price;
-        bool exists;
+        uint256 price;     // у wei
     }
 
-    IERC721 public nftContract;
-    mapping(uint256 => Listing) public listings;
-    uint256[] public listedTokenIds;
-
-    event ItemListed(uint256 indexed tokenId, address seller, uint256 price);
-    event ItemCanceled(uint256 indexed tokenId, address seller);
-    event ItemBought(uint256 indexed tokenId, address buyer, uint256 price);
-
-    constructor(address _nftContract) Ownable(msg.sender) {
-        nftContract = IERC721(_nftContract);
+    struct Key {          
+        address nft;
+        uint256 tokenId;
     }
 
-    modifier isOwner(uint256 _tokenId, address spender) {
-        require(nftContract.ownerOf(_tokenId) == spender, "Not owner");
-        _;
+    // nft => tokenId => Listing
+    mapping(address => mapping(uint256 => Listing)) public listings;
+    Key[] public listedKeys;
+
+    event ItemListed(address indexed nft, uint256 indexed tokenId, address seller, uint256 price);
+    event ItemCanceled(address indexed nft, uint256 indexed tokenId, address seller);
+    event ItemBought  (address indexed nft, uint256 indexed tokenId, address buyer, uint256 price);
+
+    /* ------------------------------------------------------------ */
+    /*                        1. Лістинг                            */
+    /* ------------------------------------------------------------ */
+    function listItem(address _nft, uint256 _tokenId, uint256 _price) external {
+        require(_price > 0, "Price must be >0");
+
+        IERC721 nft = IERC721(_nft);
+        require(nft.ownerOf(_tokenId) == msg.sender, "Not owner");
+        require(nft.getApproved(_tokenId) == address(this), "Marketplace not approved");
+
+        listings[_nft][_tokenId] = Listing(msg.sender, _price);
+        listedKeys.push(Key(_nft, _tokenId));
+
+        emit ItemListed(_nft, _tokenId, msg.sender, _price);
     }
 
-    modifier listingExists(uint256 _tokenId) {
-        require(listings[_tokenId].exists, "Listing not found");
-        _;
+    /* ------------------------------------------------------------ */
+    function cancelListing(address _nft, uint256 _tokenId) external {
+        Listing memory l = listings[_nft][_tokenId];
+        require(l.seller == msg.sender, "Not seller");
+
+        delete listings[_nft][_tokenId];
+        _removeKey(_nft, _tokenId);
+
+        emit ItemCanceled(_nft, _tokenId, msg.sender);
     }
 
-    function listItem(uint256 _tokenId, uint256 _price) external isOwner(_tokenId, msg.sender) {
-        require(_price > 0, "Price must be > 0");
-        
-        address approved = nftContract.getApproved(_tokenId);
-        require(approved == address(this), "Marketplace not approved");
-        
-        listings[_tokenId] = Listing(msg.sender, _price, true);
-        listedTokenIds.push(_tokenId);
-        emit ItemListed(_tokenId, msg.sender, _price);
+    function buyItem(address _nft, uint256 _tokenId) external payable nonReentrant {
+        Listing memory l = listings[_nft][_tokenId];
+        require(l.price > 0, "Not listed");
+        require(msg.value == l.price, "Send exact price");
+
+        delete listings[_nft][_tokenId];
+        _removeKey(_nft, _tokenId);
+
+        payable(l.seller).transfer(msg.value);
+        IERC721(_nft).safeTransferFrom(l.seller, msg.sender, _tokenId);
+
+        emit ItemBought(_nft, _tokenId, msg.sender, l.price);
     }
 
-    function cancelListing(uint256 _tokenId) external isOwner(_tokenId, msg.sender) listingExists(_tokenId) {
-        delete listings[_tokenId];
-        _removeTokenId(_tokenId);
-        emit ItemCanceled(_tokenId, msg.sender);
-    }
+    function getAllListings() external view returns (Key[] memory, Listing[] memory) {
+        uint256 len = listedKeys.length;
+        Listing[] memory ls = new Listing[](len);
 
-    function buyItem(uint256 _tokenId) external payable nonReentrant listingExists(_tokenId) {
-        Listing memory item = listings[_tokenId];
-        require(msg.value == item.price, "Send exact price");
-
-        delete listings[_tokenId];
-        _removeTokenId(_tokenId);
-
-        payable(item.seller).transfer(msg.value);
-        nftContract.safeTransferFrom(item.seller, msg.sender, _tokenId);
-
-        emit ItemBought(_tokenId, msg.sender, item.price);
-    }
-
-    function getAllListings() external view returns (uint256[] memory, Listing[] memory) {
-        Listing[] memory items = new Listing[](listedTokenIds.length);
-        
-        for (uint256 i = 0; i < listedTokenIds.length; i++) {
-            items[i] = listings[listedTokenIds[i]];
+        for (uint256 i; i < len; ++i) {
+            Key memory k = listedKeys[i];
+            ls[i] = listings[k.nft][k.tokenId];
         }
-        
-        return (listedTokenIds, items);
+        return (listedKeys, ls);
     }
 
-    function _removeTokenId(uint256 _tokenId) private {
-        for (uint256 i = 0; i < listedTokenIds.length; i++) {
-            if (listedTokenIds[i] == _tokenId) {
-                listedTokenIds[i] = listedTokenIds[listedTokenIds.length - 1];
-                listedTokenIds.pop();
+    function _removeKey(address _nft, uint256 _tokenId) private {
+        uint256 len = listedKeys.length;
+        for (uint256 i; i < len; ++i) {
+            if (listedKeys[i].nft == _nft && listedKeys[i].tokenId == _tokenId) {
+                listedKeys[i] = listedKeys[len - 1];
+                listedKeys.pop();
                 break;
             }
         }
     }
-    
-    // Оновлення адреси NFT контракту (тільки для власника)
-    function setNftContract(address _nftContract) external onlyOwner {
-        nftContract = IERC721(_nftContract);
-    }
+
+    constructor() Ownable(msg.sender) {}
 }

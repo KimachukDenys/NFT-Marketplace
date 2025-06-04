@@ -9,19 +9,22 @@ declare global {
   }
 
   interface NFT {
+    nftAddress: string; 
     tokenId: number;
     owner: string;
+
     price?: string;
     seller?: string;
     isListed: boolean;
     onStartAuction?: boolean;
-    metadata?: NFTMetadata;
-
+    
     isAuction?: boolean;
     highestBid?: string;
     buyNowPrice?: string;
     highestBidder?: string;
     canEnd?: boolean;
+    
+    metadata?: NFTMetadata;
   }
 
   interface Filters {
@@ -29,6 +32,19 @@ declare global {
     minPrice: string;
     maxPrice: string;
     sortBy: 'price-asc' | 'price-desc' | 'newest';
+  }
+
+  interface AuctionMeta {
+    nftAddress: string; 
+    tokenId: number;
+    seller: string;
+    highestBid: bigint;
+    highestBidder: string;
+    buyNowPrice: bigint;
+    minBidIncrement: bigint;
+    endTime: number;
+    metadata?: NFTMetadata;
+    onCancelAuction?: () => Promise<void>;
   }
 
   interface AppContextType {

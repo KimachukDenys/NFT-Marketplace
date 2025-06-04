@@ -5,7 +5,7 @@ interface Props {
   onApprove?: () => Promise<boolean>;
   onList?: (priceEth: string) => Promise<void>;
   onCancel?: () => Promise<void>;
-  onStartAuction?: () => void;
+  onStartAuction?: (tokenId: number) => void; // Змінено тут - додано параметр tokenId
   onBuy?: (tokenId: number, price: string) => Promise<void>;
   account?: string | null;
   convertIpfsUrl: (u: string) => string;
@@ -67,6 +67,13 @@ export const NftCard: React.FC<Props> = ({
     }
   };
 
+
+  const handleStartAuction = () => {
+    if (onStartAuction) {
+      onStartAuction(nft.tokenId); // Передаємо tokenId у функцію
+    }
+  };
+
   return (
     <div className="nft-card">
       {nft.metadata?.image && (
@@ -104,7 +111,7 @@ export const NftCard: React.FC<Props> = ({
             )}
 
             {onStartAuction && (
-              <button onClick={onStartAuction} className="mx-1">
+              <button onClick={handleStartAuction} className="mx-1">
                 Аукціон
               </button>
             )}

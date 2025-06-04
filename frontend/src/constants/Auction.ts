@@ -1,17 +1,6 @@
-export const auctionAddress = '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707';
+export const auctionAddress = '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9';
 
 export const auctionAbi = [
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_nft",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
     {
       "inputs": [],
       "name": "ReentrancyGuardReentrantCall",
@@ -20,6 +9,12 @@ export const auctionAbi = [
     {
       "anonymous": false,
       "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
         {
           "indexed": true,
           "internalType": "uint256",
@@ -35,6 +30,12 @@ export const auctionAbi = [
       "inputs": [
         {
           "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
+        {
+          "indexed": true,
           "internalType": "uint256",
           "name": "tokenId",
           "type": "uint256"
@@ -48,13 +49,7 @@ export const auctionAbi = [
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "start",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "end",
+          "name": "endTime",
           "type": "uint256"
         },
         {
@@ -70,6 +65,12 @@ export const auctionAbi = [
     {
       "anonymous": false,
       "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
         {
           "indexed": true,
           "internalType": "uint256",
@@ -97,6 +98,12 @@ export const auctionAbi = [
       "inputs": [
         {
           "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
+        {
+          "indexed": true,
           "internalType": "uint256",
           "name": "tokenId",
           "type": "uint256"
@@ -120,6 +127,11 @@ export const auctionAbi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
@@ -140,11 +152,6 @@ export const auctionAbi = [
         {
           "internalType": "uint256",
           "name": "highestBid",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "startTime",
           "type": "uint256"
         },
         {
@@ -174,8 +181,13 @@ export const auctionAbi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "tokenId",
+          "name": "_tokenId",
           "type": "uint256"
         }
       ],
@@ -187,8 +199,13 @@ export const auctionAbi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "tokenId",
+          "name": "_tokenId",
           "type": "uint256"
         }
       ],
@@ -200,36 +217,28 @@ export const auctionAbi = [
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "tokenId",
-          "type": "uint256"
-        }
-      ],
-      "name": "checkAndEndExpiredAuction",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
         {
           "internalType": "uint256",
-          "name": "tokenId",
+          "name": "_tokenId",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "duration",
+          "name": "_durationSec",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "buy",
+          "name": "_buyNowWei",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "minInc",
+          "name": "_minIncWei",
           "type": "uint256"
         }
       ],
@@ -241,27 +250,19 @@ export const auctionAbi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "tokenId",
+          "name": "_tokenId",
           "type": "uint256"
         }
       ],
       "name": "endAuction",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "nftContract",
-      "outputs": [
-        {
-          "internalType": "contract IERC721",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -301,8 +302,13 @@ export const auctionAbi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_nft",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "tokenId",
+          "name": "_tokenId",
           "type": "uint256"
         }
       ],

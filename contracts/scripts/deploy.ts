@@ -13,15 +13,15 @@ async function main() {
   console.log("MyNFT deployed to:", await myNFT.getAddress());
 
   // Деплой Marketplace з передачею адреси MyNFT
-  const Marketplace = await ethers.getContractFactory("Marketplace");
-  const marketplace = await Marketplace.deploy(await myNFT.getAddress());
+  const Marketplace = await ethers.getContractFactory("MarketplaceMulti");
+  const marketplace = await Marketplace.deploy();
   await marketplace.waitForDeployment();
 
   console.log("Marketplace deployed to:", await marketplace.getAddress());
 
   // Деплой Auction
-  const Auction = await ethers.getContractFactory("NFTAuction");
-  const auction = await Auction.deploy(await myNFT.getAddress());
+  const Auction = await ethers.getContractFactory("AuctionMulti");
+  const auction = await Auction.deploy();
   await auction.waitForDeployment();
 
   console.log("Auction deployed to:", await auction.getAddress());

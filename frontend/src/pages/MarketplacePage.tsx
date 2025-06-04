@@ -44,11 +44,11 @@ export const MarketplacePage = () => {
       const nftContract = new ethers.Contract(mynftAddress, mynftAbi, signer);
       const marketContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
 
-      const [listedIds, listings] = await marketContract.getAllListings();
+      const [keys, listings] = await marketContract.getAllListings();
       const loadedNfts: NFT[] = [];
 
-      for (let i = 0; i < listedIds.length; i++) {
-        const tokenId = Number(listedIds[i]);
+      for (let i = 0; i < keys.length; i++) {
+        const { nft: mynftAddress, tokenId } = keys[i];;
         const listing = listings[i];
         
         try {
@@ -75,6 +75,7 @@ export const MarketplacePage = () => {
           }
 
           loadedNfts.push({
+            nftAddress: mynftAddress,
             tokenId,
             owner: await nftContract.ownerOf(tokenId),
             price: ethers.formatEther(listing.price),
@@ -137,8 +138,8 @@ export const MarketplacePage = () => {
       const signer = await getProviderAndSigner();
       const market = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
       
-      const tx = await market.buyItem(tokenId, {
-        value: ethers.parseEther(price),
+      const tx = await market.buyItem(mynftAddress, tokenId, { 
+        value: ethers.parseEther(price) 
       });
       
       await tx.wait();
