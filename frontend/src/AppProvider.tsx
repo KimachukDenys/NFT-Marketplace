@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { BrowserProvider, Contract } from 'ethers';
 import { mynftAddress, mynftAbi } from './constants/MyNFT';
 import { marketplaceAddress, marketplaceAbi } from './constants/Marketplace';
+import { auctionAddress, auctionAbi } from './constants/Auction';
 import { AppContext } from './context/AppContext';
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -10,6 +11,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [nftContract, setNftContract] = useState<Contract | null>(null);
   const [marketContract, setMarketContract] = useState<Contract | null>(null);
+  const [auctionContract, setAuctionContract] = useState<Contract | null>(null);
   const [ipfsStatus, setIpfsStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
 
   useEffect(() => {
@@ -21,12 +23,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const signer = await newProvider.getSigner();
         setNftContract(new Contract(mynftAddress, mynftAbi, signer));
         setMarketContract(new Contract(marketplaceAddress, marketplaceAbi, signer));
+        setAuctionContract(new Contract(auctionAddress, auctionAbi, signer));
       }
     };
 
     initContracts();
   }, [account]);
 
+  
   useEffect(() => {
     const checkIPFSConnection = async () => {
       try {
@@ -40,11 +44,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setIpfsStatus('error');
       }
     };
-
+    
     checkIPFSConnection();
-    const interval = setInterval(checkIPFSConnection, 30000);
+    const interval = setInterval(checkIPFSConnection, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    console.log('📡 Provider:', provider);
+    console.log('👤 Account:', account);
+    console.log('🧬 IPFS:', ipfsStatus);
+  }, [provider, account, ipfsStatus]);
+
 
   const value: AppContextType = {
     account,
@@ -52,6 +63,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     provider,
     nftContract,
     marketContract,
+    auctionContract,
     ipfsStatus
   };
 

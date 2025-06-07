@@ -96,6 +96,8 @@ export const MyNftsPage = () => {
         const { nft: mynftAddress, tokenId } = keys[i]; 
         const listing = listings[i];
 
+        if (listing.seller.toLowerCase() !== account.toLowerCase()) continue;
+
         const nftC = new ethers.Contract(mynftAddress, mynftAbi, signer);
         const tokenURI = await nftC.tokenURI(tokenId);
         let metadata: NFTMetadata | undefined;
@@ -129,6 +131,7 @@ export const MyNftsPage = () => {
           metadata
         });
       }
+
 
       // Combine and filter NFTs
       const combinedNftsMap = new Map<string, NFT>();

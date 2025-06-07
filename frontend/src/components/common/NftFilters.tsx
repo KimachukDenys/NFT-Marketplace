@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState,  useRef } from 'react';
+import './NftFilters.css';
 
+interface Filters {
+  searchQuery: string;
+  minPrice: string;
+  maxPrice: string;
+  sortBy: 'price-asc' | 'price-desc' | 'newest';
+}
 
 interface NftFiltersProps {
   onFilterChange: (filters: Filters) => void;
@@ -7,78 +14,62 @@ interface NftFiltersProps {
   maxAvailablePrice: number;
 }
 
-export const NftFilters: React.FC<NftFiltersProps> = ({ 
-  onFilterChange, 
-  minAvailablePrice, 
-  maxAvailablePrice 
+export const NftFilters: React.FC<NftFiltersProps> = ({
+  onFilterChange,
+  minAvailablePrice,
+  maxAvailablePrice,
 }) => {
   const [filters, setFilters] = useState<Filters>({
     searchQuery: '',
     minPrice: minAvailablePrice.toString(),
     maxPrice: maxAvailablePrice.toString(),
-    sortBy: 'newest'
+    sortBy: 'newest',
   });
 
   const [sliderValues, setSliderValues] = useState({
     min: minAvailablePrice,
-    max: maxAvailablePrice
+    max: maxAvailablePrice,
   });
 
-  useEffect(() => {
-    setFilters(prev => ({
-      ...prev,
-      minPrice: minAvailablePrice.toString(),
-      maxPrice: maxAvailablePrice.toString()
-    }));
-    setSliderValues({
-      min: minAvailablePrice,
-      max: maxAvailablePrice
-    });
-  }, [minAvailablePrice, maxAvailablePrice]);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  // Обновлення фільтрів і slider values синхронно
+  const updateFilters = (newMin: number, newMax: number) => {
+    const fixedMin = Math.min(newMin, newMax);
+    const fixedMax = Math.max(newMin, newMax);
+    setSliderValues({ min: fixedMin, max: fixedMax });
+    const newFilters = {
+      ...filters,
+      minPrice: fixedMin.toString(),
+      maxPrice: fixedMax.toString(),
+    };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const newFilters = { ...filters, [name]: value };
-    
-    // Оновлюємо повзунок при зміні полів вводу
+
     if (name === 'minPrice') {
-      setSliderValues(prev => ({
-        ...prev,
-        min: parseFloat(value) || minAvailablePrice
-      }));
+      let val = parseFloat(value) || minAvailablePrice;
+      if (val < minAvailablePrice) val = minAvailablePrice;
+      if (val > sliderValues.max) val = sliderValues.max;
+      updateFilters(val, sliderValues.max);
     } else if (name === 'maxPrice') {
-      setSliderValues(prev => ({
-        ...prev,
-        max: parseFloat(value) || maxAvailablePrice
-      }));
+      let val = parseFloat(value) || maxAvailablePrice;
+      if (val > maxAvailablePrice) val = maxAvailablePrice;
+      if (val < sliderValues.min) val = sliderValues.min;
+      updateFilters(sliderValues.min, val);
+    } else if (name === 'searchQuery' || name === 'sortBy') {
+      const newFilters = { ...filters, [name]: value };
+      setFilters(newFilters);
+      onFilterChange(newFilters);
     }
-    
-    setFilters(newFilters);
-    onFilterChange(newFilters);
   };
 
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'min' | 'max') => {
-    const value = parseFloat(e.target.value);
-    const newSliderValues = { ...sliderValues, [type]: value };
-    
-    // Запобігаємо перетину мінімального та максимального значень
-    if (type === 'min' && value > sliderValues.max) {
-      newSliderValues.min = sliderValues.max;
-    } else if (type === 'max' && value < sliderValues.min) {
-      newSliderValues.max = sliderValues.min;
-    }
-    
-    setSliderValues(newSliderValues);
-    
-    const newFilters = {
-      ...filters,
-      minPrice: newSliderValues.min.toString(),
-      maxPrice: newSliderValues.max.toString()
-    };
-    
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  };
+  // Рендер прогресу між двома ручками
+  const minPercent = ((sliderValues.min - minAvailablePrice) / (maxAvailablePrice - minAvailablePrice)) * 100;
+  const maxPercent = ((sliderValues.max - minAvailablePrice) / (maxAvailablePrice - minAvailablePrice)) * 100;
 
   return (
     <div className="filters-container">
@@ -96,15 +87,14 @@ export const NftFilters: React.FC<NftFiltersProps> = ({
 
       <div className="filter-group price-range">
         <label>Ціновий діапазон (ETH)</label>
-        
         <div className="price-slider">
           <input
             type="range"
             min={minAvailablePrice}
             max={maxAvailablePrice}
             value={sliderValues.min}
-            onChange={(e) => handleSliderChange(e, 'min')}
-            step="0.01"
+            onChange={(e) => updateFilters(Number(e.target.value), sliderValues.max)}
+            step={0.01}
             className="slider min-slider"
           />
           <input
@@ -112,12 +102,19 @@ export const NftFilters: React.FC<NftFiltersProps> = ({
             min={minAvailablePrice}
             max={maxAvailablePrice}
             value={sliderValues.max}
-            onChange={(e) => handleSliderChange(e, 'max')}
-            step="0.01"
+            onChange={(e) => updateFilters(sliderValues.min, Number(e.target.value))}
+            step={0.01}
             className="slider max-slider"
           />
+
+          {/* Прогресбар між двома ручками */}
+          <div
+            ref={progressRef}
+            className="progress"
+            style={{ left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }}
+          />
         </div>
-        
+
         <div className="price-inputs">
           <input
             type="number"
@@ -126,7 +123,7 @@ export const NftFilters: React.FC<NftFiltersProps> = ({
             onChange={handleInputChange}
             min={minAvailablePrice}
             max={maxAvailablePrice}
-            step="0.01"
+            step={0.01}
           />
           <span>-</span>
           <input
@@ -136,19 +133,14 @@ export const NftFilters: React.FC<NftFiltersProps> = ({
             onChange={handleInputChange}
             min={minAvailablePrice}
             max={maxAvailablePrice}
-            step="0.01"
+            step={0.01}
           />
         </div>
       </div>
 
       <div className="filter-group">
         <label htmlFor="sortBy">Сортування</label>
-        <select
-          id="sortBy"
-          name="sortBy"
-          value={filters.sortBy}
-          onChange={handleInputChange}
-        >
+        <select id="sortBy" name="sortBy" value={filters.sortBy} onChange={handleInputChange}>
           <option value="newest">Спочатку нові</option>
           <option value="price-asc">Ціна (за зростанням)</option>
           <option value="price-desc">Ціна (за спаданням)</option>

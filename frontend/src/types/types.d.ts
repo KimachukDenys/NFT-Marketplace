@@ -53,6 +53,7 @@ declare global {
     provider: BrowserProvider | null;
     nftContract: Contract | null;
     marketContract: Contract | null;
+    auctionContract: Contract | null;
     ipfsStatus: 'connecting' | 'connected' | 'error';
   }
 }

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract MarketplaceMulti is ReentrancyGuard, Ownable {
     struct Listing {
         address seller;
-        uint256 price;     // у wei
+        uint256 price;
     }
 
     struct Key {          
@@ -16,7 +16,6 @@ contract MarketplaceMulti is ReentrancyGuard, Ownable {
         uint256 tokenId;
     }
 
-    // nft => tokenId => Listing
     mapping(address => mapping(uint256 => Listing)) public listings;
     Key[] public listedKeys;
 
@@ -24,9 +23,6 @@ contract MarketplaceMulti is ReentrancyGuard, Ownable {
     event ItemCanceled(address indexed nft, uint256 indexed tokenId, address seller);
     event ItemBought  (address indexed nft, uint256 indexed tokenId, address buyer, uint256 price);
 
-    /* ------------------------------------------------------------ */
-    /*                        1. Лістинг                            */
-    /* ------------------------------------------------------------ */
     function listItem(address _nft, uint256 _tokenId, uint256 _price) external {
         require(_price > 0, "Price must be >0");
 
@@ -40,7 +36,6 @@ contract MarketplaceMulti is ReentrancyGuard, Ownable {
         emit ItemListed(_nft, _tokenId, msg.sender, _price);
     }
 
-    /* ------------------------------------------------------------ */
     function cancelListing(address _nft, uint256 _tokenId) external {
         Listing memory l = listings[_nft][_tokenId];
         require(l.seller == msg.sender, "Not seller");

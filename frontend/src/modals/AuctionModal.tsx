@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { addMonths } from 'date-fns';
+import './Modal.css';
 
 interface Props {
   isOpen: boolean;
@@ -21,8 +22,8 @@ const AuctionModal: React.FC<Props> = ({
 }) => {
   const [endDateTime, setEndDateTime] = useState(() => {
     const now = new Date();
-    now.setMinutes(now.getMinutes() + 60); // default +1 година
-    return now.toISOString().slice(0, 16); // "yyyy-MM-ddTHH:mm"
+    now.setMinutes(now.getMinutes() + 60);
+    return now.toISOString().slice(0, 16);
   });
 
   const [buyNow, setBuyNow] = useState('0.5');
@@ -44,12 +45,7 @@ const AuctionModal: React.FC<Props> = ({
         return;
       }
 
-      await onSubmit(
-        tokenId,
-        durationSec,
-        buyNow,
-        minInc,
-      );
+      await onSubmit(tokenId, durationSec, buyNow, minInc);
       onClose();
     } finally {
       setIsCreating(false);
@@ -60,64 +56,51 @@ const AuctionModal: React.FC<Props> = ({
   const minDate = new Date().toISOString().slice(0, 16);
 
   return (
-   <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 100
-    }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'gray',
-        padding: '20px',
-        borderRadius: '8px',
-        maxWidth: '800px',
-        width: '100%'
-      }}>        
-      
-        <h3 className="text-xl font-semibold mb-4">Створити аукціон для #{tokenId}</h3>
-        <label className="block text-sm mb-1">Дата завершення:</label>
+    <div className="modal-backdrop">
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-6 w-full max-w-xl shadow-lg">
+        <h3 className="text-xl font-semibold mb-5 dark:text-white">
+          Створити аукціон для #{tokenId}
+        </h3>
+
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+          Дата завершення:
+        </label>
         <input
           type="datetime-local"
           value={endDateTime}
           min={minDate}
           max={maxDate}
-          onChange={e => setEndDateTime(e.target.value)}
-          className="border p-2 w-full mb-3"
+          onChange={(e) => setEndDateTime(e.target.value)}
+          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full mb-4 bg-white dark:bg-gray-800 text-black dark:text-white"
         />
 
-        <label className="block text-sm mb-1">Buy Now, ETH:</label>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+          Buy Now, ETH:
+        </label>
         <input
           value={buyNow}
-          onChange={e => setBuyNow(e.target.value)}
-          className="border p-2 w-full mb-3"
+          onChange={(e) => setBuyNow(e.target.value)}
+          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full mb-4 bg-white dark:bg-gray-800 text-black dark:text-white"
         />
 
-        <label className="block text-sm mb-1">Min Bid Increment, ETH:</label>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+          Min Bid Increment, ETH:
+        </label>
         <input
           value={minInc}
-          onChange={e => setMinInc(e.target.value)}
-          className="border p-2 w-full mb-4"
+          onChange={(e) => setMinInc(e.target.value)}
+          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full mb-4 bg-white dark:bg-gray-800 text-black dark:text-white"
         />
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded border hover:bg-gray-100"
           >
             Скасувати
           </button>
           <button
             disabled={isCreating}
             onClick={handleCreate}
-            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {isCreating ? 'Створення…' : 'Створити'}
           </button>

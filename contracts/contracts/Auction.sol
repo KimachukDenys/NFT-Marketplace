@@ -9,14 +9,13 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
     struct Auction {
         address seller;
         address highestBidder;
-        uint256 highestBid;       // wei
-        uint256 endTime;          // timestamp
-        uint256 buyNowPrice;      // wei
-        uint256 minBidIncrement;  // wei
+        uint256 highestBid;       
+        uint256 endTime;          
+        uint256 buyNowPrice;      
+        uint256 minBidIncrement;  
         bool    ended;
     }
 
-    // collection => tokenId => Auction
     mapping(address => mapping(uint256 => Auction)) public auctions;
 
     event AuctionCreated(address indexed nft, uint256 indexed tokenId, address seller, uint256 endTime, uint256 buyNow);
@@ -24,9 +23,7 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
     event AuctionEnded  (address indexed nft, uint256 indexed tokenId, address winner, uint256 price);
     event AuctionCanceled(address indexed nft, uint256 indexed tokenId);
 
-    /* ------------------------------------------------------------ */
-    /*                       1. Створення                           */
-    /* ------------------------------------------------------------ */
+
     function createAuction(
         address _nft,
         uint256 _tokenId,
@@ -54,7 +51,6 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
         emit AuctionCreated(_nft, _tokenId, msg.sender, block.timestamp + _durationSec, _buyNowWei);
     }
 
-    /* ------------------------------------------------------------ */
     function placeBid(address _nft, uint256 _tokenId) external payable nonReentrant {
         Auction storage a = auctions[_nft][_tokenId];
         require(!a.ended, "Ended");
@@ -75,7 +71,6 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
         emit BidPlaced(_nft, _tokenId, msg.sender, msg.value);
     }
 
-    /* ------------------------------------------------------------ */
     function buyNow(address _nft, uint256 _tokenId) external payable nonReentrant {
         Auction storage a = auctions[_nft][_tokenId];
         require(!a.ended, "Ended");
@@ -85,7 +80,6 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
         _endAuction(_nft, _tokenId, msg.sender, msg.value);
     }
 
-    /* ------------------------------------------------------------ */
     function endAuction(address _nft, uint256 _tokenId) external nonReentrant {
         Auction storage a = auctions[_nft][_tokenId];
         require(!a.ended, "Ended");
@@ -94,7 +88,6 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
         _endAuction(_nft, _tokenId, a.highestBidder, a.highestBid);
     }
 
-    /* ------------------------------------------------------------ */
     function cancelAuction(address _nft, uint256 _tokenId) external nonReentrant {
         Auction storage a = auctions[_nft][_tokenId];
         require(a.seller == msg.sender, "Not seller");
@@ -107,7 +100,6 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
         emit AuctionCanceled(_nft, _tokenId);
     }
 
-    /* ------------------------------------------------------------ */
     function _endAuction(
         address _nft,
         uint256 _tokenId,
@@ -128,7 +120,6 @@ contract AuctionMulti is IERC721Receiver, ReentrancyGuard {
         delete auctions[_nft][_tokenId];
     }
 
-    /* ------------------------------------------------------------ */
     function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }

@@ -1,34 +1,56 @@
+@import "tailwindcss";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+/* @custom-variant dark (&:where(.dark, .dark *)); */
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  background-color: var(--bg-color);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme='light'] {
+  --bg-color: #f9fafb;
+  --text-color: #111827;
+  --accent-color: #3b82f6;
+  --danger-color: #ef4444;
+  --btnH-color: #4f46e5;
+}
+
+:root[data-theme='dark'] {
+  --bg-color: #121213;
+  --text-color: #f9fafb;
+  --accent-color: #4f46e5;
+  --danger-color: #dc2626;
+  --btnH-color: #3b82f6;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #f0f0f4;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #cfd0d8;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
+
 
 h1 {
   font-size: 3.2em;
@@ -42,27 +64,30 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--accent-color);
+  color: #f9fafb;
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
+  background-color: var(--btnH-color);
+  transition: background-color 0.25s, border-color 0.25s;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.danger {
+  background-color: var(--danger-color);
+  color: #f9fafb;
+}
+
+.danger:hover {
+  background-color: #b31c1c;
+  border: #890707 solid 1px;
+  transition: background-color 0.25s;
 }

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { FiRefreshCw } from 'react-icons/fi'; // Іконка оновлення
+import './ConnectWalletButton.css';
 
 interface ConnectWalletButtonProps {
   setAccount: (address: string | null) => void;
@@ -6,43 +8,74 @@ interface ConnectWalletButtonProps {
 
 const ConnectWalletButton = ({ setAccount }: ConnectWalletButtonProps) => {
   const [address, setAddress] = useState<string | null>(null);
+  const [isSpinning, setIsSpinning] = useState(false);
+
 
   const connectWallet = async () => {
+    setIsSpinning(true);
     if (window.ethereum) {
       try {
-        const accounts = await window.ethereum.request<string[]>({ 
-          method: 'eth_requestAccounts' 
+        const accounts = await window.ethereum.request<string[]>({
+          method: 'eth_requestAccounts',
         });
-        if (accounts && accounts.length > 0) {
-          const userAddress = accounts[0];
-          if (userAddress) {
-            setAddress(userAddress);
-            setAccount(userAddress);
-          } else {
-            setAddress(null);
-            setAccount(null);
-          }
+
+        const userAddress = accounts?.[0] ?? null;
+
+        if (userAddress) {
+          setAddress(userAddress);
+          setAccount(userAddress);
+          localStorage.setItem('userAddress', userAddress); // збереження
         } else {
-          alert('No accounts found');
-          setAddress(null);
-          setAccount(null);
+          handleDisconnect();
         }
       } catch (error) {
         console.error('User rejected connection', error);
-        setAddress(null);
-        setAccount(null);
+        handleDisconnect();
       }
     } else {
       alert('MetaMask not detected');
-      setAddress(null);
-      setAccount(null);
+      handleDisconnect();
     }
+    setTimeout(() => setIsSpinning(false), 500);
   };
 
+  const handleDisconnect = () => {
+    setAddress(null);
+    setAccount(null);
+    localStorage.removeItem('userAddress');
+  };
+
+  const restoreAddress = useCallback(() => {
+    const saved = localStorage.getItem('userAddress');
+    if (saved) {
+      setAddress(saved);
+      setAccount(saved);
+    }
+  }, [setAccount]);
+
+  useEffect(() => {
+    restoreAddress();
+  }, [restoreAddress]);
+
   return (
-    <div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       {address ? (
-        <p>Connected: {address}</p>
+        <>
+          <p style={{ margin: 0 }}>
+            Connected: {address.slice(0, 6)}...{address.slice(-4)}
+          </p>
+         <a
+            onClick={(e) => {
+              e.preventDefault();
+              connectWallet();
+            }}
+            title="Оновити адресу"
+            className={`refresh-icon ${isSpinning ? 'spin' : ''}`}
+            href="#"
+          >
+            <FiRefreshCw size={18} />
+          </a>
+        </>
       ) : (
         <button onClick={connectWallet}>Connect MetaMask</button>
       )}

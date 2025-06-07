@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import { formatEther, parseEther, Contract } from 'ethers';
-
-interface AuctionMeta {
-  tokenId: number;
-  seller: string;
-  highestBid: bigint;
-  highestBidder: string;
-  buyNowPrice: bigint;
-  minBidIncrement: bigint;
-  endTime: number;
-  metadata?: NFTMetadata;
-}
+import { Link } from "react-router-dom";
 
 interface Props {
   auction: AuctionMeta;
@@ -38,11 +28,7 @@ const AuctionCard: React.FC<Props> = ({
   const [isCancelingAuction, setIsCancelingAuction] = useState(false);
 
   const ended = Date.now() / 1000 >= auction.endTime;
-
-  const isAuctionInvalid =
-    auction.seller === ZERO ||
-    auction.endTime === 0;
-
+  const isAuctionInvalid = auction.seller === ZERO || auction.endTime === 0;
   if (isAuctionInvalid) return null;
 
   const canEndAuction =
@@ -51,7 +37,7 @@ const AuctionCard: React.FC<Props> = ({
 
   const placeBid = async () => {
     try {
-      const tx = await auctionContract.placeBid(auction.tokenId, {
+      const tx = await auctionContract.placeBid(auction.nftAddress, auction.tokenId, {
         value: parseEther(bidEth),
         gasLimit: 300000
       });
@@ -59,26 +45,26 @@ const AuctionCard: React.FC<Props> = ({
       refetch();
       setBidEth('');
     } catch (err) {
-      console.error('Place bid error:', err);
+      console.error('Помилка виставлення ставки:', err);
     }
   };
 
   const buyNow = async () => {
     try {
-      const tx = await auctionContract.buyNow(auction.tokenId, {
+      const tx = await auctionContract.buyNow(auction.nftAddress, auction.tokenId, {
         value: auction.buyNowPrice,
       });
       await tx.wait();
       refetch();
     } catch (err) {
-      console.error('Buy now error:', err);
+      console.error('Помилка покупки зараз:', err);
     }
   };
 
   const endAuction = async () => {
     setEndingTxPending(true);
     try {
-      const tx = await auctionContract.endAuction(auction.tokenId);
+      const tx = await auctionContract.endAuction(auction.nftAddress, auction.tokenId);
       await tx.wait();
       refetch();
     } catch (err) {
@@ -95,84 +81,97 @@ const AuctionCard: React.FC<Props> = ({
       await onCancelAuction();
       refetch();
     } catch (err) {
-      console.error('Cancel auction error:', err);
+      console.error('Помилка скасування:', err);
     } finally {
       setIsCancelingAuction(false);
     }
   };
 
   return (
-    <div className="border p-4 rounded shadow w-72">
+    <div className="max-w-[18rem] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-md p-4 w-80 hover:shadow-lg transition-all">
       {nftImgUrl && (
-        <img src={nftImgUrl} alt={`NFT #${auction.tokenId}`} className="mb-2" style={{ maxWidth: 150 }} />
+        <Link to={`/auction/${auction.tokenId}`}>
+          <img
+            src={nftImgUrl}
+            alt={`NFT #${auction.tokenId}`}
+            className="rounded-xl w-full h-56 object-cover mb-4"
+          />
+        </Link>
       )}
 
-      <h3 className="font-semibold mb-1">NFT #{auction.tokenId}</h3>
-      <p className="text-sm mb-1">
-        Seller: {auction.seller.slice(0, 6)}…{auction.seller.slice(-4)}
-      </p>
-      <p className="text-sm mb-1">
-        Highest Bid:&nbsp;
-        {auction.highestBid === 0n ? '—' : formatEther(auction.highestBid) + ' ETH'}
-      </p>
-      <p className="text-sm mb-1">
-        Buy Now: {formatEther(auction.buyNowPrice)} ETH
-      </p>
-      <p className="text-sm mb-2">
-        Ends&nbsp;{new Date(auction.endTime * 1000).toLocaleString()}
-      </p>
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">NFT #{auction.tokenId}</h3>
+        <p className="text-sm text-gray-500">Продавець: {auction.seller.slice(0, 6)}…{auction.seller.slice(-4)}</p>
+        <p className="text-sm text-gray-500">
+          Найвища ставка:{' '}
+          <span className="text-gray-900 dark:text-white font-medium">
+            {auction.highestBid === 0n ? '—' : formatEther(auction.highestBid) + ' ETH'}
+          </span>
+        </p>
+        <p className="text-sm text-gray-500">
+          Купити зараз: <span className="text-green-600 dark:text-green-400 font-medium">{formatEther(auction.buyNowPrice)} ETH</span>
+        </p>
+        <p className="text-sm text-gray-400">
+          Закінчується: {new Date(auction.endTime * 1000).toLocaleString()}
+        </p>
+      </div>
 
-      {/* Cancel auction button before bidding */}
-      {currentAddress.toLowerCase() === auction.seller.toLowerCase() &&
-        auction.highestBid === 0n &&
-        !ended && (
-          <button
-            onClick={handleCancelAuction}
-            disabled={isCancelingAuction}
-            className="bg-yellow-500 text-white w-full py-1 rounded mb-2"
-          >
-            {isCancelingAuction ? 'Скасування…' : 'Скасувати аукціон'}
-          </button>
-        )}
-
-      {ended ? (
-        <>
-          <p className="text-red-600 text-center mb-2">Аукціон завершено</p>
-          {canEndAuction && (
+      <div className="mt-4 space-y-2">
+        {currentAddress.toLowerCase() === auction.seller.toLowerCase() &&
+          auction.highestBid === 0n &&
+          !ended && (
             <button
-              onClick={endAuction}
-              disabled={disabled || endingTxPending}
-              className="bg-blue-600 text-white w-full py-1 rounded"
+              onClick={handleCancelAuction}
+              disabled={isCancelingAuction}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
             >
-              {endingTxPending ? 'Завершення…' : 'Завершити аукціон'}
+              {isCancelingAuction ? 'Скасування…' : 'Скасувати аукціон'}
             </button>
           )}
-        </>
-      ) : (
-        <>
-          <input
-            className="border p-1 w-full mb-2"
-            placeholder="Bid, ETH"
-            value={bidEth}
-            onChange={e => setBidEth(e.target.value)}
-            disabled={disabled}
-          />
-          <button
-            onClick={placeBid}
-            disabled={disabled || !bidEth}
-            className="bg-green-600 text-white w-full py-1 rounded mb-1"
-          >
-            Ставка
-          </button>
-          <button
-            onClick={buyNow}
-            disabled={disabled}
-            className="bg-red-600 text-white w-full py-1 rounded"
-          >
-            Buy&nbsp;Now
-          </button>
-        </>
-      )}
+
+        {ended ? (
+          <>
+            <p className="text-center text-sm text-red-600 dark:text-red-400">Аукціон завершено</p>
+            {canEndAuction && (
+              <button
+                onClick={endAuction}
+                disabled={disabled || endingTxPending}
+                className="w-full text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
+              >
+                {endingTxPending ? 'Завершення…' : 'Завершити аукціон'}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            {(auction.highestBid !== 0n || currentAddress.toLowerCase() !== auction.seller.toLowerCase()) && (
+              <>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white p-2 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  placeholder={`Ставка, ETH ${auction.minBidIncrement>auction.highestBid ? `(${formatEther(auction.minBidIncrement)} min)` : `(${formatEther(auction.highestBid)} min)`}`}
+                  value={bidEth}
+                  onChange={e => setBidEth(e.target.value)}
+                  disabled={disabled}
+                />
+                <button
+                  onClick={placeBid}
+                  disabled={disabled || !bidEth}
+                  className="w-full font-medium py-2 rounded-lg transition disabled:opacity-50"
+                >
+                  Ставка
+                </button>
+                <button
+                  onClick={buyNow}
+                  disabled={disabled}
+                  className="w-full font-medium py-2 rounded-lg transition disabled:opacity-50"
+                >
+                  Купити зараз
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

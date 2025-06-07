@@ -5,10 +5,11 @@ interface Props {
   onApprove?: () => Promise<boolean>;
   onList?: (priceEth: string) => Promise<void>;
   onCancel?: () => Promise<void>;
-  onStartAuction?: (tokenId: number) => void; // Змінено тут - додано параметр tokenId
+  onStartAuction?: (tokenId: number) => void;
   onBuy?: (tokenId: number, price: string) => Promise<void>;
   account?: string | null;
   convertIpfsUrl: (u: string) => string;
+  onClick?: () => void;
 }
 
 export const NftCard: React.FC<Props> = ({
@@ -20,6 +21,7 @@ export const NftCard: React.FC<Props> = ({
   onStartAuction,
   account,
   convertIpfsUrl,
+  onClick,
 }) => {
   const [price, setPrice] = useState("0.01");
   const [isApproving, setIsApproving] = useState(false);
@@ -27,7 +29,8 @@ export const NftCard: React.FC<Props> = ({
   const [isCanceling, setIsCanceling] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
 
-  const handleApprove = async () => {
+  const handleApprove = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!onApprove) return;
     setIsApproving(true);
     try {
@@ -37,7 +40,8 @@ export const NftCard: React.FC<Props> = ({
     }
   };
 
-  const handleList = async () => {
+  const handleList = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!onList) return;
     setIsListing(true);
     try {
@@ -47,7 +51,8 @@ export const NftCard: React.FC<Props> = ({
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!onCancel) return;
     setIsCanceling(true);
     try {
@@ -57,7 +62,8 @@ export const NftCard: React.FC<Props> = ({
     }
   };
 
-  const handleBuy = async () => {
+  const handleBuy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!onBuy || !nft.price) return;
     setIsBuying(true);
     try {
@@ -67,78 +73,104 @@ export const NftCard: React.FC<Props> = ({
     }
   };
 
-
-  const handleStartAuction = () => {
+  const handleStartAuction = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (onStartAuction) {
-      onStartAuction(nft.tokenId); // Передаємо tokenId у функцію
+      onStartAuction(nft.tokenId);
     }
   };
 
   return (
-    <div className="nft-card">
+    <div
+      className="max-w-[15rem] rounded-2xl shadow-lg bg-white dark:bg-zinc-900 hover:shadow-xl transition duration-300 cursor-pointer flex flex-col"
+      onClick={onClick}
+    >
       {nft.metadata?.image && (
         <img
           src={convertIpfsUrl(nft.metadata.image)}
           alt={nft.metadata?.name}
-          style={{ maxWidth: 150 }}
+          className=" w-full h-full object-cover mb-3"
         />
       )}
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">
+          {nft.metadata?.name ?? `NFT #${nft.tokenId}`}
+        </h3>
 
-      <h3>{nft.metadata?.name ?? `NFT #${nft.tokenId}`}</h3>
-      <p>{nft.metadata?.description}</p>
+        {!nft.isListed ? (
+          <div className="mt-2 ml-2">
+            <input
+              type="text"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Ціна, ETH"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full border rounded-lg px-3 py-2 text-sm mb-2 dark:bg-zinc-800 dark:text-white"
+              />
 
-      {!nft.isListed ? (
-        <div className="owner-actions">
-          <input
-            type="text"
-            value={price}
-            className="price-input"
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="Цiна, ETH"
-          />
-
-          <div className="action-buttons">
-            {onApprove && (
-              <button onClick={handleApprove} disabled={isApproving}>
-                {isApproving ? "Підтвердження..." : "Підтвердити"}
-              </button>
-            )}
-
-            {onList && (
-              <button onClick={handleList} disabled={isListing || Number(price) <= 0}>
-                {isListing ? "Виставлення..." : "Виставити"}
-              </button>
-            )}
-
-            {onStartAuction && (
-              <button onClick={handleStartAuction} className="mx-1">
-                Аукціон
-              </button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {onApprove && (
+                <button
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded-md text-sm"
+                >
+                  {isApproving ? "Підтвердження..." : "Підтвердити"}
+                </button>
+              )}
+              {onList && (
+                <button
+                onClick={handleList}
+                disabled={isListing || Number(price) <= 0}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-md text-sm"
+                >
+                  {isListing ? "Виставлення..." : "Маркетплейс"}
+                </button>
+              )}
+              {onStartAuction && (
+                <button
+                onClick={handleStartAuction}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded-md text-sm"
+                >
+                  Аукціон
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="listing-info">
-          <p className="mt-2">
-            Цiна: <strong>{nft.price}</strong> ETH
-          </p>
-          <p className="text-xs text-gray-500">
-            Продавець: {nft.seller?.slice(0, 6)}…{nft.seller?.slice(-4)}
-          </p>
+        ) : (
+          <div className="mt-3">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <strong>Ціна:</strong> {nft.price} ETH
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Продавець: {nft.seller?.slice(0, 6)}…{nft.seller?.slice(-4)}
+            </p>
 
-          {onCancel && (
-            <button onClick={handleCancel} disabled={isCanceling} className="cancel-btn">
-              {isCanceling ? "Скасування..." : "Скасувати лістинг"}
-            </button>
-          )}
-
-          {onBuy && account && account.toLowerCase() !== nft.seller?.toLowerCase() && (
-            <button onClick={handleBuy} disabled={isBuying} className="buy-btn">
-              {isBuying ? "Купівля..." : "Купити"}
-            </button>
-          )}
-        </div>
-      )}
+            <div className="flex gap-2 mt-3">
+              {onCancel && (
+                <button
+                onClick={handleCancel}
+                disabled={isCanceling}
+                className="danger flex-1 py-1 px-3 rounded-md text-sm"
+                >
+                  {isCanceling ? "Скасування..." : "Скасувати"}
+                </button>
+              )}
+              {onBuy &&
+                account &&
+                account.toLowerCase() !== nft.seller?.toLowerCase() && (
+                  <button
+                  onClick={handleBuy}
+                  disabled={isBuying}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded-md text-sm"
+                  >
+                    {isBuying ? "Купівля..." : "Купити"}
+                  </button>
+                )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
