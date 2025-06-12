@@ -73,7 +73,7 @@ const MintPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 rounded-lg shadow-md">
+    <div className="max-w-md mx-auto p-6 rounded-lg shadow-xl">
       <h2 className="text-2xl font-bold mb-6 text-center">Створити новий NFT</h2>
       
       {!account && (
@@ -85,7 +85,7 @@ const MintPage = () => {
       <MintForm onMint={handleMint} />
       
       {isUploading && (
-        <div className="mt-4 p-4 bg-blue-100 text-blue-800 rounded text-center">
+        <div className="mt-4 p-4 bg-blue-100 dark:bg-zinc-900 text-blue-800 dark:text-blue-100 rounded text-center">
           Завантаження та обробка NFT...
         </div>
       )}

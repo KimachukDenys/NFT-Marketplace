@@ -58,7 +58,7 @@ export const NftModal: React.FC<NftModalProps> = ({
             {isOwner && onCancel && (
               <button
                 onClick={onCancel}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm"
+                className="flex-1 danger text-white px-4 py-2 rounded-md text-sm"
               >
                 Скасувати лістинг
               </button>
@@ -66,7 +66,7 @@ export const NftModal: React.FC<NftModalProps> = ({
             {!isOwner && onBuy && (
               <button
                 onClick={() => onBuy(nft.tokenId, nft.price!)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
+                className="flex-1 text-white px-4 py-2 rounded-md text-sm"
               >
                 Купити
               </button>

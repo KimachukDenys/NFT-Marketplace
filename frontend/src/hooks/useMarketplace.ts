@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback  } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { mynftAddress, mynftAbi } from '../constants/MyNFT';
 import { marketplaceAddress, marketplaceAbi } from '../constants/Marketplace';
@@ -9,10 +9,14 @@ export const useMarketplaceData = () => {
   const [listedNfts, setListedNfts] = useState<NFT[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const getProviderAndSigner = async () => {
-    const provider = new ethers.BrowserProvider(
+  const getProvider = () => {
+    return new ethers.BrowserProvider(
       window.ethereum as unknown as ethers.Eip1193Provider
     );
+  };
+
+  const getSigner = async () => {
+    const provider = getProvider();
     return provider.getSigner();
   };
 
@@ -29,16 +33,17 @@ export const useMarketplaceData = () => {
   const loadListedNFTs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const signer = await getProviderAndSigner();
-      const nftContract = new ethers.Contract(mynftAddress, mynftAbi, signer);
-      const marketContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
-      const [keys, listings] = await marketContract.getAllListings();
+      const provider = getProvider();
+      const nftContract = new ethers.Contract(mynftAddress, mynftAbi, provider);
+      const marketContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, provider);
 
+      const [keys, listings] = await marketContract.getAllListings();
       const loadedNfts: NFT[] = [];
 
       for (let i = 0; i < keys.length; i++) {
         const { nft: mynftAddress, tokenId } = keys[i];
         const listing = listings[i];
+
         try {
           const tokenURI = await nftContract.tokenURI(tokenId);
           let metadata: NFTMetadata | undefined;
@@ -73,8 +78,8 @@ export const useMarketplaceData = () => {
   }, []);
 
   useEffect(() => {
-    loadListedNFTs();
-  }, [account, loadListedNFTs]);
+    loadListedNFTs(); // Без перевірки account — для всіх користувачів
+  }, [loadListedNFTs]);
 
   const buyNFT = async (tokenId: number, price: string) => {
     if (!account) {
@@ -83,7 +88,7 @@ export const useMarketplaceData = () => {
     }
 
     try {
-      const signer = await getProviderAndSigner();
+      const signer = await getSigner();
       const market = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
 
       const tx = await market.buyItem(mynftAddress, tokenId, {
@@ -99,22 +104,25 @@ export const useMarketplaceData = () => {
   };
 
   const cancelListing = async (tokenId: number) => {
+    if (!account) {
+      alert("Під’єднай гаманець");
+      return;
+    }
+
     try {
-      const signer = await getProviderAndSigner();
+      const signer = await getSigner();
       const market = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
-      
+
       const tx = await market.cancelListing(mynftAddress, tokenId);
-      
       const receipt = await tx.wait();
       if (receipt.status === 1) {
-        alert('Listing canceled successfully!');
+        alert('Лістинг скасовано');
         loadListedNFTs();
       } else {
-        throw new Error('Transaction failed');
+        throw new Error('Транзакція неуспішна');
       }
     } catch (error) {
       console.error("Cancel listing error:", error);
-      throw error;
     }
   };
 

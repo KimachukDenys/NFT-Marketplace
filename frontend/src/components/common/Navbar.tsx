@@ -37,7 +37,7 @@ const Navbar: React.FC = () => {
           className="p-2 rounded-full transition"
           style={{
             backgroundColor: theme === "light" ? "rgba(255, 255, 255, 0.2)" : "rgba(0,0,0,0.2)",
-            color: theme === "light" ? "#000" : "#fff"
+            color: theme === "light" ? "#fff" : "#fff"
           }}
           title="Toggle theme"
         >

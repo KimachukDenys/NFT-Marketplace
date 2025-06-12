@@ -24,7 +24,7 @@ const ConnectWalletButton = ({ setAccount }: ConnectWalletButtonProps) => {
         if (userAddress) {
           setAddress(userAddress);
           setAccount(userAddress);
-          localStorage.setItem('userAddress', userAddress); // збереження
+          sessionStorage.setItem('userAddress', userAddress); // збереження
         } else {
           handleDisconnect();
         }
@@ -42,14 +42,26 @@ const ConnectWalletButton = ({ setAccount }: ConnectWalletButtonProps) => {
   const handleDisconnect = () => {
     setAddress(null);
     setAccount(null);
-    localStorage.removeItem('userAddress');
+    sessionStorage.removeItem('userAddress');
   };
 
-  const restoreAddress = useCallback(() => {
-    const saved = localStorage.getItem('userAddress');
-    if (saved) {
-      setAddress(saved);
-      setAccount(saved);
+  const restoreAddress = useCallback(async () => {
+    if (window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request<string[]>({
+          method: 'eth_accounts',
+        });
+
+        const userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
+
+        if (userAddress) {
+          setAddress(userAddress);
+          setAccount(userAddress);
+          sessionStorage.setItem('userAddress', userAddress);
+        }
+      } catch (err) {
+        console.error('Error restoring account:', err);
+      }
     }
   }, [setAccount]);
 

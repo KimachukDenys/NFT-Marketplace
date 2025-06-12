@@ -86,11 +86,13 @@ export const NftCard: React.FC<Props> = ({
       onClick={onClick}
     >
       {nft.metadata?.image && (
-        <img
-          src={convertIpfsUrl(nft.metadata.image)}
-          alt={nft.metadata?.name}
-          className=" w-full h-full object-cover mb-3"
-        />
+        <div className="w-full relative h-54">  
+          <img
+            src={convertIpfsUrl(nft.metadata.image)}
+            alt={nft.metadata?.name}
+            className="w-full h-full object-contain mb-3"
+          />
+        </div>
       )}
       <div className="p-3 flex flex-col flex-grow">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">

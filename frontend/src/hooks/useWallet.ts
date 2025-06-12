@@ -9,8 +9,9 @@ export function useWallet() {
   async function connectWallet() {
     if (window.ethereum) {
       try {
+        console.log("it`s hook")
         const ethProvider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await ethProvider.send("eth_requestAccounts", []);
+        const accounts = await ethProvider.send("eth_accounts", []);
         setAddress(accounts[0]);
         setProvider(ethProvider);
         console.log("Connected:", accounts[0]);

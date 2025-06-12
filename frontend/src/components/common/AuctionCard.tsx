@@ -123,7 +123,7 @@ const AuctionCard: React.FC<Props> = ({
             <button
               onClick={handleCancelAuction}
               disabled={isCancelingAuction}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
+              className="w-full danger text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
             >
               {isCancelingAuction ? 'Скасування…' : 'Скасувати аукціон'}
             </button>

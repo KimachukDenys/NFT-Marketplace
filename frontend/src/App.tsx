@@ -7,23 +7,27 @@ import MintPage from './pages/MintPage';
 import { MyNftsPage } from './pages/MyNftsPage';
 import  AuctionPage  from './pages/AuctionPage'
 import AuctionDetailPage from './pages/AuctionDetailPage';
+import Footer from './components/common/Footer';
 
 function App() {
   return (
     <BrowserRouter>
       <AppProvider>
-        <div>
+        <div className="flex flex-col min-h-screen">
           <Navbar />
-          <div className="container mx-auto px-4 py-8">
-            <Routes>
+          <Routes>
               <Route path="/" element={<HomePage />} />
+          </Routes>
+          <main className="flex-grow container mx-auto px-4 py-8">
+            <Routes>
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/mint" element={<MintPage />} />
               <Route path="/my-nfts" element={<MyNftsPage />} />
               <Route path="/auction" element={<AuctionPage />} />
               <Route path="/auction/:id" element={<AuctionDetailPage />} />
             </Routes>
-          </div>
+          </main>
+          <Footer />
         </div>
       </AppProvider>
     </BrowserRouter>

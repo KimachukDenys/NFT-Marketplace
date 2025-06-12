@@ -3,6 +3,7 @@
 /* @custom-variant dark (&:where(.dark, .dark *)); */
 
 :root {
+  min-height: 100vh;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -90,4 +91,11 @@ button:focus-visible {
   background-color: #b31c1c;
   border: #890707 solid 1px;
   transition: background-color 0.25s;
+}
+
+.border-accent {
+  border-color: var(--accent-color) !important;
+}
+.bg-accent\/20 {
+  background-color: rgba(59, 130, 246, 0.2) !important;
 }
